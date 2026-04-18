@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🦞 龙虾电影搜索</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f7fa; color: #333; }
+.header { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 12px 20px; display: flex; align-items: center; gap: 10px; }
+.logo { font-size: 22px; font-weight: 600; color: #1a6fa0; }
+.logo span { color: #e05c2a; }
+.container { max-width: 800px; margin: 0 auto; padding: 16px; }
+.notice { font-size: 13px; color: #e05c2a; background: #fff8f0; border: 1px solid #f5d0b0; border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; line-height: 1.7; }
+.notice b { color: #c0392b; }
+.warm { font-size: 13px; color: #7a5c00; background: #fffbe6; border: 1px solid #ffe58f; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; }
+.search-bar { display: flex; gap: 8px; margin-bottom: 6px; }
+.search-bar input { flex: 1; border: 1px solid #ccc; border-radius: 8px; padding: 12px 16px; font-size: 15px; outline: none; background: #fff; }
+.search-bar input:focus { border-color: #1a8cd8; }
+.search-bar button { background: #1a8cd8; color: #fff; border: none; border-radius: 8px; padding: 12px 24px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+.search-bar button:hover { background: #1478bb; }
+.keyword { font-size: 13px; color: #1a6fa0; margin-bottom: 12px; }
+.loading { text-align: center; padding: 40px; color: #888; font-size: 14px; display: none; }
+.spinner { border: 3px solid #f0f0f0; border-top: 3px solid #1a8cd8; border-radius: 50%; width: 28px; height: 28px; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.hall { background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; margin-bottom: 14px; overflow: hidden; }
+.hall-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #f9f9f9; border-bottom: 1px solid #e0e0e0; cursor: pointer; }
+.hall-title { font-size: 15px; font-weight: 600; color: #e05c2a; }
+.hall-toggle { font-size: 12px; color: #888; }
+.hall-body { padding: 16px; }
+.result-item { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #f0f0f0; }
+.result-item:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+.result-title { font-size: 14px; font-weight: 500; color: #222; margin-bottom: 10px; }
+.links { display: flex; flex-direction: column; gap: 6px; }
+.link-row { display: flex; align-items: center; gap: 8px; font-size: 13px; flex-wrap: wrap; }
+.link-label { color: #666; }
+.link-a { color: #1a6fa0; text-decoration: none; font-weight: 500; }
+.link-a:hover { text-decoration: underline; }
+.code { color: #e05c2a; font-weight: 500; }
+.actions { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+.btn-report { font-size: 12px; background: #fff0f0; color: #c0392b; border: 1px solid #f5c0c0; border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+.btn-copy { font-size: 12px; background: #f0f8ff; color: #1a6fa0; border: 1px solid #b0d8f5; border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+.btn-copy:hover { background: #ddf0ff; }
+.no-result { background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 30px; text-align: center; }
+.no-result p { color: #e05c2a; font-weight: 500; margin-bottom: 6px; }
+.no-result small { color: #c0392b; font-size: 13px; }
+.empty-state { text-align: center; padding: 60px 20px; color: #aaa; font-size: 14px; line-height: 2; }
+.footer { text-align: center; font-size: 11px; color: #bbb; margin: 20px 0 10px; line-height: 2; }
+.toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; font-size: 13px; padding: 10px 22px; border-radius: 20px; display: none; z-index: 999; }
+.tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-left: 4px; background: #e8f4f8; color: #1a6fa0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">🦞 <span>龙虾</span>电影搜索</div>
+</div>
+
+<div class="container">
+  <div class="notice">
+    <b>友情提示：</b>如果某个大厅资源失效，下翻翻至其它大厅查看！
+  </div>
+  <div class="warm">
+    温馨提示：所有来源均为搜集，仅供交流学习，本站不存储任何数据，数据来自于网络！
+  </div>
+
+  <div class="search-bar">
+    <input id="searchInput" type="text" placeholder="请输入搜索的影视名称" />
+    <button onclick="doSearch()">点击搜索</button>
+  </div>
+  <div class="keyword" id="keywordLine" style="display:none">
+    当前搜索关键词：<span id="keywordText" style="color:#e05c2a;font-weight:500"></span>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    搜索中，请稍候...
+  </div>
+
+  <div id="results">
+    <div class="empty-state">
+      🦞 输入影视名称开始搜索<br>
+      <span style="font-size:12px">搜索关键词以豆瓣片名为准，不要加第几季等后缀</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    如果上面是空白的什么都没有，代表卡住了，多刷新几次！！<br>
+    免责声明：本站所有数据均来源于互联网公开分享链接，仅供交流学习，请于24小时内删除，请支持正版。<br>
+    如有侵犯您的权益，请发送相关证明文件及时与我们联系进行屏蔽删除处理！谢谢
+  </div>
+</div>
+
+<div class="toast" id="toast">链接已复制 ✓</div>
+
+<script>
+const BASE_ID = 'app4y4Qw5MrQyZBkZ';
+const TABLE_ID = 'tblOeMylqejg6iNFp';
+const HALLS = ['一号厅', '二号大厅', '三号大厅'];
+
+async function doSearch() {
+  const kw = document.getElementById('searchInput').value.trim();
+  if (!kw) return;
+
+  document.getElementById('keywordLine').style.display = 'block';
+  document.getElementById('keywordText').textContent = kw;
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('results').innerHTML = '';
+
+  try {
+    const formula = encodeURIComponent(`SEARCH("${kw}", {片名})`);
+    const url = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?filterByFormula=${formula}&maxRecords=100`;
+
+    const res = await fetch(url, {
+      headers: { 'Authorization': 'Bearer patHJ91FkpngM8KFU.7c7b1f99a4f7ff176d83d4ea4a7f09dbbe371c92362ed52a0b84db057c4bad82' }
+    });
+
+    if (!res.ok) throw new Error('网络请求失败');
+    const data = await res.json();
+    const records = data.records || [];
+
+    document.getElementById('loading').style.display = 'none';
+
+    if (records.length === 0) {
+      document.getElementById('results').innerHTML = `
+        <div class="no-result">
+          <p>没搜索到？不要有第几部 第几季这样的后缀～</p>
+          <small>如没有，请在群里反馈！</small>
+        </div>`;
+      return;
+    }
+
+    const perHall = Math.ceil(records.length / 3);
+    const groups = [
+      records.slice(0, perHall),
+      records.slice(perHall, perHall * 2),
+      records.slice(perHall * 2)
+    ].filter(g => g.length > 0);
+
+    let html = '';
+    groups.forEach((group, i) => {
+      let itemsHtml = group.map(r => {
+        const f = r.fields;
+        const title = f['片名'] || '未知片名';
+        const year = f['年份'] ? `[${f['年份']}]` : '';
+        const type = f['类型'] ? `[${f['类型']}]` : '';
+        const tag = f['分类'] ? `<span class="tag">${f['分类']}</span>` : '';
+
+        let linksHtml = '';
+        let copyParts = [];
+
+        if (f['百度云链接']) {
+          const code = f['百度提取码'] ? ` 提取码：<span class="code">${f['百度提取码']}</span>` : '';
+          linksHtml += `<div class="link-row"><span class="link-label">链接：</span><a class="link-a" href="${f['百度云链接']}" target="_blank">百度云盘</a>${code}</div>`;
+          copyParts.push(`百度云盘：${f['百度云链接']}${f['百度提取码'] ? ' 提取码：'+f['百度提取码'] : ''}`);
+        }
+        if (f['夸克链接']) {
+          linksHtml += `<div class="link-row"><span class="link-label">链接：</span><a class="link-a" href="${f['夸克链接']}" target="_blank">夸克云盘</a></div>`;
+          copyParts.push(`夸克云盘：${f['夸克链接']}`);
+        }
+        if (f['迅雷链接']) {
+          linksHtml += `<div class="link-row"><span class="link-label">链接：</span><a class="link-a" href="${f['迅雷链接']}" target="_blank">迅雷云盘</a></div>`;
+          copyParts.push(`迅雷云盘：${f['迅雷链接']}`);
+        }
+        if (f['阿里云链接']) {
+          linksHtml += `<div class="link-row"><span class="link-label">链接：</span><a class="link-a" href="${f['阿里云链接']}" target="_blank">阿里云盘</a></div>`;
+          copyParts.push(`阿里云盘：${f['阿里云链接']}`);
+        }
+
+        if (!linksHtml) linksHtml = '<span style="color:#aaa;font-size:13px">暂无链接</span>';
+
+        const copyStr = copyParts.join('\\n').replace(/'/g, "\\'");
+
+        return `
+          <div class="result-item">
+            <div class="result-title">${title} ${year} ${type}${tag}</div>
+            <div class="links">${linksHtml}</div>
+            <div class="actions">
+              <button class="btn-report">失效反馈</button>
+              <button class="btn-copy" onclick="copyText('${copyStr}')">复制链接</button>
+            </div>
+          </div>`;
+      }).join('');
+
+      html += `
+        <div class="hall">
+          <div class="hall-header" onclick="toggleHall(this)">
+            <span class="hall-title">${HALLS[i] || (i+1)+'号厅'}</span>
+            <span class="hall-toggle">收起当前厅 ▽</span>
+          </div>
+          <div class="hall-body">${itemsHtml}</div>
+        </div>`;
+    });
+
+    document.getElementById('results').innerHTML = html;
+
+  } catch (err) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('results').innerHTML = `
+      <div class="no-result">
+        <p>搜索出错了，请稍后重试</p>
+        <small>${err.message}</small>
+      </div>`;
+  }
+}
+
+function toggleHall(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.hall-toggle');
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    toggle.textContent = '收起当前厅 ▽';
+  } else {
+    body.style.display = 'none';
+    toggle.textContent = '展开当前厅 ▷';
+  }
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).catch(() => {});
+  const t = document.getElementById('toast');
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 1800);
+}
+
+document.getElementById('searchInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch();
+});
+</script>
+</body>
+</html>
