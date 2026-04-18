@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🦞 龙虾电影搜索</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #fdf6ee;
+  --warm-white: #fff9f3;
+  --orange: #e8622a;
+  --orange-light: #f0845a;
+  --orange-dark: #c44d1a;
+  --red: #c0392b;
+  --gold: #d4a017;
+  --text-dark: #2c1810;
+  --text-mid: #6b3f2a;
+  --text-light: #a07060;
+  --card-bg: rgba(255,249,243,0.92);
+  --shadow: 0 4px 24px rgba(200,80,30,0.10);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Noto Sans SC', sans-serif;
+  background: var(--cream);
+  color: var(--text-dark);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* 电影海报背景 */
+.bg-posters {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 4px;
+  opacity: 0.13;
+  transform: rotate(-3deg) scale(1.15);
+  pointer-events: none;
+}
+
+.poster-cell {
+  border-radius: 6px;
+  background-size: cover;
+  background-position: center;
+}
+
+.bg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    160deg,
+    rgba(253,246,238,0.97) 0%,
+    rgba(253,246,238,0.88) 50%,
+    rgba(253,246,238,0.95) 100%
+  );
+}
+
+/* 主体 */
+.page {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+}
+
+/* 顶部导航 */
+.header {
+  padding: 20px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1.5px solid rgba(232,98,42,0.15);
+  background: rgba(253,246,238,0.8);
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-icon {
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 4px 12px rgba(232,98,42,0.35);
+}
+
+.logo-text {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-dark);
+  letter-spacing: 2px;
+}
+
+.logo-text span { color: var(--orange); }
+
+.header-tag {
+  font-size: 12px;
+  color: var(--text-light);
+  background: rgba(232,98,42,0.08);
+  border: 1px solid rgba(232,98,42,0.2);
+  border-radius: 20px;
+  padding: 4px 12px;
+}
+
+/* 英雄区 */
+.hero {
+  text-align: center;
+  padding: 60px 24px 40px;
+}
+
+.hero-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--text-dark);
+  line-height: 1.2;
+  margin-bottom: 12px;
+  animation: fadeUp 0.6s ease both;
+}
+
+.hero-title span {
+  color: var(--orange);
+  position: relative;
+}
+
+.hero-title span::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--orange), var(--gold));
+  border-radius: 2px;
+}
+
+.hero-sub {
+  font-size: 15px;
+  color: var(--text-light);
+  margin-bottom: 36px;
+  animation: fadeUp 0.6s 0.1s ease both;
+}
+
+/* 搜索框 */
+.search-wrap {
+  max-width: 640px;
+  margin: 0 auto 16px;
+  animation: fadeUp 0.6s 0.2s ease both;
+}
+
+.search-box {
+  display: flex;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(232,98,42,0.18), 0 2px 8px rgba(0,0,0,0.06);
+  overflow: hidden;
+  border: 1.5px solid rgba(232,98,42,0.2);
+  transition: box-shadow 0.3s, border-color 0.3s;
+}
+
+.search-box:focus-within {
+  box-shadow: 0 8px 48px rgba(232,98,42,0.28), 0 2px 8px rgba(0,0,0,0.08);
+  border-color: var(--orange);
+}
+
+.search-box input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 18px 22px;
+  font-size: 16px;
+  font-family: 'Noto Sans SC', sans-serif;
+  color: var(--text-dark);
+  background: transparent;
+}
+
+.search-box input::placeholder { color: #c0a090; }
+
+.search-btn {
+  background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+  border: none;
+  color: white;
+  padding: 0 32px;
+  font-size: 15px;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: opacity 0.2s, transform 0.15s;
+  white-space: nowrap;
+}
+
+.search-btn:hover { opacity: 0.92; }
+.search-btn:active { transform: scale(0.97); }
+
+.search-hint {
+  font-size: 12px;
+  color: var(--text-light);
+  text-align: center;
+}
+
+.keyword-bar {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-mid);
+  margin-top: 10px;
+  display: none;
+}
+
+.keyword-bar span {
+  color: var(--orange);
+  font-weight: 500;
+  background: rgba(232,98,42,0.08);
+  padding: 2px 10px;
+  border-radius: 10px;
+}
+
+/* 内容区 */
+.content {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 20px 60px;
+}
+
+/* 加载 */
+.loading {
+  display: none;
+  text-align: center;
+  padding: 60px 0;
+}
+
+.loading-film {
+  font-size: 48px;
+  animation: spin 1.5s linear infinite;
+  display: block;
+  margin-bottom: 16px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading p {
+  color: var(--text-light);
+  font-size: 14px;
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.empty-icon {
+  font-size: 64px;
+  display: block;
+  margin-bottom: 20px;
+  opacity: 0.6;
+}
+
+.empty-state h3 {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 20px;
+  color: var(--text-mid);
+  margin-bottom: 8px;
+}
+
+.empty-state p {
+  font-size: 13px;
+  color: var(--text-light);
+  line-height: 1.8;
+}
+
+/* 大厅卡片 */
+.hall {
+  background: var(--card-bg);
+  border-radius: 20px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(232,98,42,0.12);
+  animation: fadeUp 0.4s ease both;
+}
+
+.hall-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  cursor: pointer;
+  background: linear-gradient(90deg, rgba(232,98,42,0.06), transparent);
+  border-bottom: 1px solid rgba(232,98,42,0.1);
+  user-select: none;
+}
+
+.hall-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hall-dot {
+  width: 10px;
+  height: 10px;
+  background: linear-gradient(135deg, var(--orange), var(--gold));
+  border-radius: 50%;
+}
+
+.hall-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--orange-dark);
+}
+
+.hall-toggle {
+  font-size: 12px;
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hall-body { padding: 16px 20px; }
+
+/* 结果条目 */
+.result-item {
+  padding: 16px 0;
+  border-bottom: 1px dashed rgba(232,98,42,0.12);
+  display: flex;
+  gap: 14px;
+}
+
+.result-item:last-child { border-bottom: none; padding-bottom: 0; }
+
+.result-poster {
+  width: 52px;
+  height: 72px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(232,98,42,0.15), rgba(212,160,23,0.15));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+  border: 1px solid rgba(232,98,42,0.15);
+}
+
+.result-info { flex: 1; min-width: 0; }
+
+.result-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.result-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.tag-year { background: rgba(212,160,23,0.12); color: #8a6400; border: 1px solid rgba(212,160,23,0.25); }
+.tag-type { background: rgba(232,98,42,0.10); color: var(--orange-dark); border: 1px solid rgba(232,98,42,0.2); }
+.tag-genre { background: rgba(44,24,16,0.06); color: var(--text-mid); border: 1px solid rgba(44,24,16,0.12); }
+
+.links { display: flex; flex-direction: column; gap: 5px; }
+
+.link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.link-platform {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+  color: white;
+  text-decoration: none;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.link-platform:hover { opacity: 0.88; transform: translateY(-1px); }
+.link-platform.quark { background: linear-gradient(135deg, #ff6b35, #e84c1e); }
+.link-platform.baidu { background: linear-gradient(135deg, #4285f4, #1a5cd8); }
+.link-platform.xunlei { background: linear-gradient(135deg, #0099ff, #006fd6); }
+.link-platform.ali { background: linear-gradient(135deg, #ff6a00, #ee0979); }
+
+.link-code {
+  font-size: 12px;
+  color: var(--text-light);
+}
+.link-code b { color: var(--orange); font-weight: 600; }
+
+.result-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.btn {
+  font-size: 12px;
+  border-radius: 8px;
+  padding: 5px 14px;
+  cursor: pointer;
+  font-family: 'Noto Sans SC', sans-serif;
+  transition: all 0.2s;
+  border: 1px solid;
+}
+
+.btn-report {
+  background: transparent;
+  color: var(--text-light);
+  border-color: rgba(44,24,16,0.15);
+}
+.btn-report:hover { background: rgba(192,57,43,0.06); color: var(--red); border-color: rgba(192,57,43,0.3); }
+
+.btn-copy {
+  background: rgba(232,98,42,0.08);
+  color: var(--orange-dark);
+  border-color: rgba(232,98,42,0.25);
+}
+.btn-copy:hover { background: rgba(232,98,42,0.15); }
+
+/* 无结果 */
+.no-result {
+  text-align: center;
+  padding: 40px 20px;
+  background: var(--card-bg);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(232,98,42,0.12);
+}
+
+.no-result h3 {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 18px;
+  color: var(--orange-dark);
+  margin-bottom: 8px;
+}
+
+.no-result p { font-size: 13px; color: var(--text-light); line-height: 1.8; }
+
+/* 提示横幅 */
+.banners {
+  max-width: 720px;
+  margin: 0 auto 24px;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.banner {
+  font-size: 12.5px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  line-height: 1.6;
+}
+
+.banner-warn {
+  background: rgba(232,98,42,0.07);
+  border: 1px solid rgba(232,98,42,0.18);
+  color: var(--orange-dark);
+}
+
+.banner-info {
+  background: rgba(212,160,23,0.07);
+  border: 1px solid rgba(212,160,23,0.2);
+  color: #7a5c00;
+}
+
+/* 页脚 */
+.footer {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-light);
+  padding: 20px;
+  line-height: 2;
+  opacity: 0.7;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: var(--text-dark);
+  color: white;
+  font-size: 13px;
+  padding: 10px 24px;
+  border-radius: 24px;
+  display: none;
+  z-index: 999;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  animation: toastIn 0.3s ease both;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(16px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 响应式 */
+@media (max-width: 600px) {
+  .hero-title { font-size: 28px; }
+  .header { padding: 14px 18px; }
+  .logo-text { font-size: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- 电影海报背景 -->
+<div class="bg-posters" id="bgPosters"></div>
+<div class="bg-overlay"></div>
+
+<div class="page">
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">🦞</div>
+      <div class="logo-text"><span>龙虾</span>电影搜索</div>
+    </div>
+    <div class="header-tag">免费 · 高清 · 全网资源</div>
+  </header>
+
+  <div class="hero">
+    <h1 class="hero-title">找片，就用<span>龙虾</span></h1>
+    <p class="hero-sub">海量影视资源，多平台网盘直链，搜索即达</p>
+
+    <div class="search-wrap">
+      <div class="search-box">
+        <input id="searchInput" type="text" placeholder="输入电影或剧集名称…" autocomplete="off" />
+        <button class="search-btn" onclick="doSearch()">搜索</button>
+      </div>
+      <p class="search-hint" style="margin-top:10px">以豆瓣片名搜索效果最佳，不需要加「第几季」等后缀</p>
+    </div>
+
+    <div class="keyword-bar" id="keywordBar">
+      正在搜索：<span id="keywordText"></span>
+    </div>
+  </div>
+
+  <div class="banners">
+    <div class="banner banner-warn">🎬 资源失效？下翻查看其它大厅，或在群内反馈，第一时间修复！</div>
+    <div class="banner banner-info">📌 所有资源均来自网络公开分享，本站不存储任何数据，仅供交流学习</div>
+  </div>
+
+  <div class="content">
+    <div class="loading" id="loading">
+      <span class="loading-film">🎞</span>
+      <p>正在搜索资源，请稍候…</p>
+    </div>
+
+    <div id="results">
+      <div class="empty-state">
+        <span class="empty-icon">🎬</span>
+        <h3>搜索你想看的影视</h3>
+        <p>支持电影、剧集、综艺<br>提供百度云盘、夸克、迅雷、阿里云盘直链</p>
+      </div>
+    </div>
+
+    <div class="footer">
+      如果搜索结果为空，代表暂时卡住了，多刷新几次！<br>
+      免责声明：本站所有数据均来源于互联网公开分享链接，仅供交流学习，请于24小时内删除，请支持正版。<br>
+      如有侵犯您的权益，请联系我们进行屏蔽删除处理。
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">✓ 链接已复制</div>
+
+<script>
+const BASE_ID = 'app4y4Qw5MrQyZBkZ';
+const TABLE_ID = 'tblOeMylqejg6iNFp';
+const TOKEN = 'patHJ91FkpngM8KFU.7c7b1f99a4f7ff176d83d4ea4a7f09dbbe371c92362ed52a0b84db057c4bad82';
+const HALLS = ['一号厅', '二号大厅', '三号大厅'];
+
+const POSTER_COLORS = [
+  ['#e8622a','#c44d1a'],['#d4a017','#b8860b'],['#c0392b','#962d22'],
+  ['#2c7873','#1a4f4c'],['#6c3483','#4a235a'],['#1a5276','#0e3460'],
+  ['#784212','#512d0e'],['#1e8449','#145a32'],['#922b21','#641e16'],
+  ['#154360','#0a2540'],['#7d6608','#5a4800'],['#4a235a','#2e1440'],
+];
+
+const FILM_EMOJIS = ['🎬','🎭','🎪','🎨','🏆','⚡','🔥','💫','🌟','🎯'];
+
+// 生成背景海报色块
+(function() {
+  const container = document.getElementById('bgPosters');
+  for (let i = 0; i < 24; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'poster-cell';
+    const c = POSTER_COLORS[i % POSTER_COLORS.length];
+    cell.style.background = `linear-gradient(135deg, ${c[0]}, ${c[1]})`;
+    container.appendChild(cell);
+  }
+})();
+
+function getPlatformClass(name) {
+  if (name.includes('夸克')) return 'quark';
+  if (name.includes('百度')) return 'baidu';
+  if (name.includes('迅雷')) return 'xunlei';
+  if (name.includes('阿里')) return 'ali';
+  return '';
+}
+
+function getPlatformIcon(name) {
+  if (name.includes('夸克')) return '⚡';
+  if (name.includes('百度')) return '☁️';
+  if (name.includes('迅雷')) return '⬇️';
+  if (name.includes('阿里')) return '🌐';
+  return '🔗';
+}
+
+async function doSearch() {
+  const kw = document.getElementById('searchInput').value.trim();
+  if (!kw) return;
+
+  document.getElementById('keywordBar').style.display = 'block';
+  document.getElementById('keywordText').textContent = kw;
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('results').innerHTML = '';
+
+  try {
+    const formula = encodeURIComponent(`SEARCH("${kw}", {片名})`);
+    const url = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?filterByFormula=${formula}&maxRecords=100`;
+    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${TOKEN}` } });
+    if (!res.ok) throw new Error('请求失败');
+    const data = await res.json();
+    const records = data.records || [];
+
+    document.getElementById('loading').style.display = 'none';
+
+    if (records.length === 0) {
+      document.getElementById('results').innerHTML = `
+        <div class="no-result">
+          <div style="font-size:48px;margin-bottom:16px">🔍</div>
+          <h3>没有找到「${kw}」的资源</h3>
+          <p>试试不加「第几部」「第几季」等后缀<br>或者稍后资源更新后再来查找</p>
+        </div>`;
+      return;
+    }
+
+    const perHall = Math.ceil(records.length / 3);
+    const groups = [
+      records.slice(0, perHall),
+      records.slice(perHall, perHall * 2),
+      records.slice(perHall * 2)
+    ].filter(g => g.length > 0);
+
+    let html = '';
+    groups.forEach((group, i) => {
+      const itemsHtml = group.map((r, idx) => {
+        const f = r.fields;
+        const title = f['片名'] || '未知片名';
+        const year = f['年份'] || '';
+        const type = f['类型'] || '';
+        const genre = f['分类'] || '';
+        const emoji = FILM_EMOJIS[(i * 10 + idx) % FILM_EMOJIS.length];
+
+        const platforms = [
+          { name: '百度云盘', url: f['百度云链接'], code: f['百度提取码'] },
+          { name: '夸克云盘', url: f['夸克链接'] },
+          { name: '迅雷云盘', url: f['迅雷链接'] },
+          { name: '阿里云盘', url: f['阿里云链接'] },
+        ].filter(p => p.url);
+
+        let linksHtml = platforms.length ? platforms.map(p => `
+          <div class="link-row">
+            <a class="link-platform ${getPlatformClass(p.name)}" href="${p.url}" target="_blank">
+              ${getPlatformIcon(p.name)} ${p.name}
+            </a>
+            ${p.code ? `<span class="link-code">提取码：<b>${p.code}</b></span>` : ''}
+          </div>`).join('') :
+          '<span style="font-size:13px;color:#c0a090">暂无链接资源</span>';
+
+        const copyText = platforms.map(p =>
+          `${p.name}：${p.url}${p.code ? ' 提取码：'+p.code : ''}`
+        ).join('\n').replace(/'/g, "\\'");
+
+        return `
+          <div class="result-item">
+            <div class="result-poster">${emoji}</div>
+            <div class="result-info">
+              <div class="result-title">${title}</div>
+              <div class="result-meta">
+                ${year ? `<span class="tag tag-year">${year}</span>` : ''}
+                ${type ? `<span class="tag tag-type">${type}</span>` : ''}
+                ${genre ? `<span class="tag tag-genre">${genre}</span>` : ''}
+              </div>
+              <div class="links">${linksHtml}</div>
+              <div class="result-actions">
+                <button class="btn btn-report">失效反馈</button>
+                <button class="btn btn-copy" onclick="copyText('${copyText}')">复制链接</button>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+
+      html += `
+        <div class="hall" style="animation-delay:${i*0.1}s">
+          <div class="hall-header" onclick="toggleHall(this)">
+            <div class="hall-name">
+              <div class="hall-dot"></div>
+              <span class="hall-title">${HALLS[i] || (i+1)+'号厅'}</span>
+            </div>
+            <div class="hall-toggle">收起 ▽</div>
+          </div>
+          <div class="hall-body">${itemsHtml}</div>
+        </div>`;
+    });
+
+    document.getElementById('results').innerHTML = html;
+  } catch(err) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('results').innerHTML = `
+      <div class="no-result">
+        <div style="font-size:48px;margin-bottom:16px">⚠️</div>
+        <h3>搜索出错了</h3>
+        <p>请稍后重试<br><small style="color:#c0a090">${err.message}</small></p>
+      </div>`;
+  }
+}
+
+function toggleHall(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.hall-toggle');
+  const collapsed = body.style.display === 'none';
+  body.style.display = collapsed ? 'block' : 'none';
+  toggle.textContent = collapsed ? '收起 ▽' : '展开 ▷';
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).catch(() => {});
+  const t = document.getElementById('toast');
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 2000);
+}
+
+document.getElementById('searchInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch();
+});
+</script>
+</body>
+</html>
